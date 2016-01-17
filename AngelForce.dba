@@ -1,0 +1,325 @@
+REM Project: AngelForce
+REM Created: 11/15/2010 4:48:16 PM
+REM
+REM ***** Main Source File *****
+REM
+
+REMSTART
+
+While a lot more can be done to this program, which I might do in my spare time, I think this is goign to be about it in
+terms of what is going to be presented for the project. Anything that needs to work is currently working, there is an
+occasional freeze because I think the game uses too much memory at times. I limited on screen enemies to 50 and bullets to
+200 to try and fix that.
+
+
+
+REMEND
+
+REM Setting all global variables, these variables will handle everything that is required throughout the program
+bulletCount = 0
+enemyCount = 0
+shipXCoordinate = 240
+shipYCoordinate = 200
+DIM bulletPositionx(1)
+DIM bulletPositiony(1)
+DIM enemyPositionx(1)
+DIM enemyPositiony(01)
+DIM enemyPositionh(01)
+score = 0
+difficulty = 40
+difficultChange = 7000
+enemyTimer = 0
+bulletTimer = 0
+resetCount = 0
+HIDE MOUSE
+REM This sets sync on as to smooth the graphics display
+SYNC ON
+
+REM This goes into the main program (Which is comprised of various subroutines that interconnect)
+GOTO _routinePhase
+
+REM Subroutine to fire a bullet from a player's position
+_FireBullet:
+   IF bulletCount < 0 THEN bulletCount = 0
+   IF bulletCount => 200 THEN RETURN
+   IF bulletTimer < 10
+      INC bulletTimer
+      RETURN
+   ENDIF
+   IF bulletTimer = 2 THEN bulletTimer = 0
+   ARRAY INSERT AT BOTTOM bulletPositionx(0)
+   ARRAY INSERT AT BOTTOM bulletPositiony(0)
+   RANDOMIZE TIMER()
+   negative = RND(2)
+   offset = RND(3)
+   IF negative = 2 THEN offset = offset*(-1)
+   bulletPositionx(bulletCount) = ( bulletx + offset )
+   bulletPositiony(bulletCount) = bullety
+   INC bulletCount
+RETURN
+
+REM This advances a bullet's position and then goes into a collision check
+
+_BulletTravelCheck:
+   IF bulletCount <> 0
+      FOR t=0 TO (bulletCount - 1) STEP 1
+         DEC bulletPositiony(t)
+         currentbullet = t
+         GOSUB _BulletCollisionCheck
+         IF resetCount = 1 THEN DEC t
+         resetCount = 0
+      NEXT
+   ENDIF
+RETURN
+
+REM Check enemy headings and advance their positions accordingly, then check for a collision with the player's ship and walls.
+
+_EnemyTravelCheck:
+   FOR q=0 TO enemyCount STEP 1
+      SELECT enemyPositionh(q)
+         CASE 1
+            DEC enemyPositiony(q)
+         ENDCASE
+         CASE 2
+            INC enemyPositionx(q)
+            DEC enemyPositiony(q)
+         ENDCASE
+         CASE 3
+            INC enemyPositionx(q)
+         ENDCASE
+         CASE 4
+            INC enemyPositionx(q)
+            INC enemyPositiony(q)
+         ENDCASE
+         CASE 5
+            INC enemyPositiony(q)
+         ENDCASE
+         CASE 6
+            DEC enemyPositionx(q)
+            INC enemyPositiony(q)
+         ENDCASE
+         CASE 7
+            DEC enemyPositionx(q)
+         ENDCASE
+         CASE 8
+            DEC enemyPositionx(q)
+            DEC enemyPositiony(q)
+         ENDCASE
+      ENDSELECT
+      currentEnemy = q
+      GOSUB _EnemyCollisionCheck
+   NEXT
+RETURN
+
+REM This subroutine handles checking for enemy collisions with the player's avatar and walls and changes enemy directions
+REM according to what their original heading was and which wall the collided with.
+
+_EnemyCollisionCheck:
+   FOR t=0 TO enemyCount STEP 1
+      IF ( shipXCoordinate - 5 >= enemyPositionx(currentEnemy) - 2 && shipXCoordinate + 5 <= enemyPositionx(currentEnemy) + 2 ) && ( shipYCoordinate - 5 >= enemyPositiony(currentEnemy) - 2 && shipYCoordinate + 5 <= enemyPositiony(currentEnemy) + 2)
+         GOTO _deathPhase
+      ENDIF
+      IF (enemyPositionx(currentEnemy) <= 2)
+         SELECT enemyPositionh(currentEnemy)
+            CASE 6 : enemyPositionh(currentEnemy) = 4 : ENDCASE
+            CASE 7 : enemyPositionh(currentEnemy) = 3 : ENDCASE
+            CASE 8 : enemyPositionh(currentEnemy) = 2 : ENDCASE
+            CASE DEFAULT : EXIT : ENDCASE
+         ENDSELECT
+      ENDIF
+      IF (enemyPositionx(currentEnemy) >= 638)
+         SELECT enemyPositionh(currentEnemy)
+            CASE 2 : enemyPositionh(currentEnemy) = 8 : ENDCASE
+            CASE 3 : enemyPositionh(currentEnemy) = 7 : ENDCASE
+            CASE 4 : enemyPositionh(currentEnemy) = 6 : ENDCASE
+            CASE DEFAULT : EXIT : ENDCASE
+         ENDSELECT
+      ENDIF
+      IF (enemyPositiony(currentEnemy) <= 1)
+         SELECT enemyPositionh(currentEnemy)
+            CASE 8 : enemyPositionh(currentEnemy) = 6 : ENDCASE
+            CASE 1 : enemyPositionh(currentEnemy) = 5 : ENDCASE
+            CASE 2 : enemyPositionh(currentEnemy) = 4 : ENDCASE
+            CASE DEFAULT : EXIT : ENDCASE
+         ENDSELECT
+      ENDIF
+      IF (enemyPositiony(currentEnemy) >= 460)
+         SELECT enemyPositionh(currentEnemy)
+            CASE 6 : enemyPositionh(currentEnemy) = 8 : ENDCASE
+            CASE 5 : enemyPositionh(currentEnemy) = 1 : ENDCASE
+            CASE 4 : enemyPositionh(currentEnemy) = 2 : ENDCASE
+            CASE DEFAULT : EXIT : ENDCASE
+         ENDSELECT
+      ENDIF
+   NEXT
+RETURN
+
+REM The following checks for a collision between the player's bullets and enemys and between bullets and walls
+REM Removing the enemy and increasing score in the first case and simply removing the bullet in the latter.
+
+_BulletCollisionCheck:
+   IF bulletCount < 0 THEN bulletCount = 0
+   FOR u=0 TO enemyCount STEP 1
+      IF ( bulletPositionx(currentBullet) >= enemyPositionx(u) - 2 && bulletPositionx(currentBullet) <= enemyPositionx(u) + 2 ) && ( bulletPositiony(currentBullet) >= enemyPositiony(u) - 2 && bulletPositiony(currentBullet) <= enemyPositiony(u) + 2)
+         ARRAY DELETE ELEMENT enemyPositionx(0),u
+         ARRAY DELETE ELEMENT enemyPositiony(0),u
+         ARRAY DELETE ELEMENT enemyPositionh(0),u
+         DEC enemyCount
+         DEC u
+         INC score, 100
+         ARRAY DELETE ELEMENT bulletPositionx(0), currentbullet
+         ARRAY DELETE ELEMENT bulletPositiony(0), currentbullet
+         DEC bulletCount
+         resetCount = 1
+      ENDIF
+   NEXT
+   REMstart IF bulletPositionx(currentBullet) = 0
+   ARRAY DELETE ELEMENT bulletPositionx(0), currentbullet
+      ARRAY DELETE ELEMENT bulletPositiony(0), currentbullet
+      DEC bulletCount
+      resetCount = 1
+      RETURN
+   ENDIF REMEND
+   IF bulletPositionx(currentBullet) = 640
+      ARRAY DELETE ELEMENT bulletPositionx(0), currentbullet
+      ARRAY DELETE ELEMENT bulletPositiony(0), currentbullet
+      DEC bulletCount
+      resetCount = 1
+      RETURN
+   ENDIF
+   IF bulletPositiony(currentBullet) = 0
+      ARRAY DELETE ELEMENT bulletPositionx(0), currentbullet
+      ARRAY DELETE ELEMENT bulletPositiony(0), currentbullet
+      DEC bulletCount
+      resetCount = 1
+      RETURN
+   ENDIF
+   IF bulletPositiony(currentBullet) = 480
+      ARRAY DELETE ELEMENT bulletPositionx(0), currentbullet
+      ARRAY DELETE ELEMENT bulletPositiony(0), currentbullet
+      DEC bulletCount
+      resetCount = 1
+      RETURN
+   ENDIF
+RETURN
+
+REM This calls an enemy placed randomly on the x axis, but always at 2 on the y, and increases the relevent arrays and
+REM variables accordingly.
+
+_RandomEnemy:
+   IF enemyCount > 150 THEN RETURN
+   RANDOMIZE TIMER()
+   z = RND(5)
+   IF z < 4
+      zz = RND(640)
+      enemyPositionx(enemyCount) = zz
+      enemyPositiony(enemyCount) = 2
+      zz = RND(3)
+      SELECT zz
+         CASE 1 : enemyPositionh(enemyCount) = 4 : ENDCASE
+         CASE 2 : enemyPositionh(enemyCount) = 5 : ENDCASE
+         CASE 3 : enemyPositionh(enemyCount) = 6 : ENDCASE
+      ENDSELECT
+      ARRAY INSERT AT BOTTOM enemyPositionx(0)
+      ARRAY INSERT AT BOTTOM enemyPositiony(0)
+      ARRAY INSERT AT BOTTOM enemyPositionh(0)
+      INC enemyCount
+   ENDIF
+RETURN
+
+REM The following checks the relevent keys for whether they are pressed or not, and then responds accordingly except
+REM for the fire key, which notes the Ship's current coordinates and hands them off to a subroutine
+
+_CheckKeyPress:
+   IF UPKEY() = 1 AND shipYCoordinate > 5 THEN DEC shipYCoordinate
+   IF DOWNKEY() = 1 AND shipYCoordinate < 475 THEN INC shipYCoordinate
+   IF LEFTKEY() = 1 AND shipXCoordinate > 5 THEN DEC shipXCoordinate
+   IF RIGHTKEY() = 1 AND shipXCoordinate < 640 THEN INC shipXCoordinate
+   IF KEYSTATE(29) = 1
+      bulletx = shipXCoordinate
+      bullety = shipYCoordinate - 5
+      GOSUB _FireBullet
+   ENDIF
+   IF ESCAPEKEY() = 1 THEN END
+RETURN
+
+REM the following maintains the flow of the program. Going into each subroutine systematically and repeating itself.
+
+_routinePhase:
+   FOR w=1 TO 10 STEP 1
+      GOSUB _BulletTravelCheck
+   NEXT
+   GOSUB _CheckKeyPress
+   FOR p=1 to 3 STEP 1
+      GOSUB _EnemyTravelCheck
+   NEXT
+   GOSUB _CheckKeyPress
+   INC enemyTimer
+   IF difficultyChange = 0
+      IF difficulty <> 0
+         DEC difficulty, 5
+      ENDIF
+   ENDIF
+   IF enemyTimer => difficulty
+      enemyTimer = 0
+      DEC difficultyChange
+      GOSUB _RandomEnemy
+   ENDIF
+   IF difficulty =< 10 THEN GOSUB _RandomEnemy
+   IF difficulty =< 5 THEN GOSUB _RandomEnemy
+   IF difficulty = 0 THEN GOSUB _RandomEnemy
+   GOSUB _CheckKeyPress
+   GOSUB _drawPhase
+   GOTO _routinePhase
+RETURN
+
+REM The following draws all graphics on the screen and then refreshes.
+
+_drawPhase:
+   CLS
+   BOX shipXCoordinate - 5, shipYCoordinate - 5, shipXCoordinate + 5, shipYCoordinate + 5
+   FOR e=0 TO bulletCount-1 STEP 1
+    DOT bulletPositionx(e), bulletPositiony(e)
+   NEXT
+   FOR e=1 TO enemyCount STEP 1
+   BOX enemyPositionx(e) - 2, enemyPositiony(e) - 2, enemyPositionx(e) + 2, enemyPositiony(e) + 2
+   NEXT
+   LINE 0,0,640,0
+   LINE 0, 0,0,480
+   LINE 640,0,640,480
+   LINE 0,480,640,480
+   PRINT bulletCount
+   PRINT score
+   SYNC
+RETURN
+
+REM the gameover screen is currently not finished.
+
+_deathPhase:
+SYNC OFF
+CLS
+PRINT "Game Over"
+WAIT KEY
+GOTO _routinePhase
+
+RETURN
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
